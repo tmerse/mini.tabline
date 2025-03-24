@@ -144,6 +144,10 @@ MiniTabline.config = {
   -- Where to show tabpage section in case of multiple vim tabpages.
   -- One of 'left', 'right', 'none'.
   tabpage_section = 'left',
+
+  -- Icon to show for buffers with git changes (requires gitsigns.nvim)
+  -- Set to empty string to disable
+  git_icon = ' ',
 }
 --minidoc_afterlines_end
 
@@ -165,6 +169,7 @@ end
 --- Used by default as `config.format`.
 --- Prepends label with padded icon based on buffer's name (if `show_icon`
 --- in |MiniTabline.config| is `true`) and surrounds label with single space.
+--- If git_icon is set and the buffer has git changes, adds the git icon.
 --- Note: it is meant to be used only as part of `format` in |MiniTabline.config|.
 ---
 ---@param buf_id number Buffer identifier.
@@ -172,8 +177,16 @@ end
 ---
 ---@return string Formatted label.
 MiniTabline.default_format = function(buf_id, label)
-  if H.get_icon == nil then return string.format(' %s ', label) end
-  return string.format(' %s %s ', H.get_icon(vim.api.nvim_buf_get_name(buf_id)), label)
+  local config = H.get_config()
+  local git_suffix = ""
+  
+  -- Add git status indicator if configured and changes exist
+  if config.git_icon and config.git_icon ~= "" and H.has_git_changes(buf_id) then
+    git_suffix = config.git_icon
+  end
+  
+  if H.get_icon == nil then return string.format(' %s%s ', label, git_suffix) end
+  return string.format(' %s %s%s ', H.get_icon(vim.api.nvim_buf_get_name(buf_id)), label, git_suffix)
 end
 
 -- Helper data ================================================================
@@ -208,6 +221,7 @@ H.setup_config = function(config)
   H.check_type('format', config.format, 'function', true)
   H.check_type('set_vim_settings', config.set_vim_settings, 'boolean')
   H.check_type('tabpage_section', config.tabpage_section, 'string')
+  H.check_type('git_icon', config.git_icon, 'string', true)
 
   return config
 end
@@ -291,6 +305,13 @@ H.list_tabs = function()
   end
 
   H.tabs = tabs
+end
+
+-- Check if buffer has git changes
+H.has_git_changes = function(buf_id)
+  -- Check if gitsigns status is available for this buffer
+  local git_status = vim.b[buf_id].gitsigns_status
+  return git_status and git_status ~= ""
 end
 
 -- Tab's highlight group
