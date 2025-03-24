@@ -186,6 +186,18 @@ MiniTabline.refresh_git_status = function()
   vim.cmd("redrawtabline")
 end
 
+--- Reset the visited buffers tracking
+---
+--- This function can be called to reset which buffers are considered "visited".
+--- After calling this, all buffers will use the fallback git status detection
+--- until they are visited again.
+---
+---@usage `require('mini.tabline').reset_visited_buffers()`
+MiniTabline.reset_visited_buffers = function()
+  H.visited_buffers = {}
+  vim.cmd("redrawtabline")
+end
+
 --- Default tab format
 ---
 --- Used by default as `config.format`.
@@ -225,6 +237,9 @@ H.unnamed_buffers_seq_ids = {}
 
 -- Cache for git status of files
 H.git_status_cache = {}
+
+-- Track visited buffers (ones that have been active at least once)
+H.visited_buffers = {}
 
 -- Separator of file path
 H.path_sep = package.config:sub(1, 1)
@@ -293,6 +308,31 @@ H.create_autocommands = function()
       end)
     end,
     desc = "Update git status for new buffers",
+  })
+  
+  -- Track when buffers become active (visited)
+  vim.api.nvim_create_autocmd("BufEnter", {
+    group = gr,
+    callback = function(args)
+      local buf_id = args.buf
+      if vim.bo[buf_id].buflisted and vim.api.nvim_buf_is_valid(buf_id) then
+        H.visited_buffers[buf_id] = true
+      end
+    end,
+    desc = "Track visited buffers",
+  })
+  
+  -- Update git status when a buffer is saved
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    group = gr,
+    callback = function(args)
+      -- Schedule a refresh of the tabline after a short delay
+      -- to allow gitsigns to update
+      vim.defer_fn(function()
+        vim.cmd("redrawtabline")
+      end, 100)
+    end,
+    desc = "Update tabline after buffer save",
   })
 end
 
@@ -421,7 +461,13 @@ end
 
 -- Check if buffer has git changes
 H.has_git_changes = function(buf_id)
-  -- First check if gitsigns status is available for this buffer
+  -- For visited buffers, only trust gitsigns status
+  if H.visited_buffers[buf_id] then
+    local git_status = vim.b[buf_id].gitsigns_status
+    return git_status and git_status ~= ""
+  end
+  
+  -- For unvisited buffers, check gitsigns first
   local git_status = vim.b[buf_id].gitsigns_status
   if git_status and git_status ~= "" then
     return true
