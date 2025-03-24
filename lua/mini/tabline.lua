@@ -248,6 +248,9 @@ H.apply_config = function(config)
 
   -- Set tabline string
   vim.o.tabline = '%!v:lua.MiniTabline.make_tabline_string()'
+  
+  -- Update git status for all buffers on initial load
+  H.update_all_buffers_git_status()
 end
 
 H.create_autocommands = function()
@@ -257,6 +260,21 @@ H.create_autocommands = function()
   local trunc_opts = { group = gr, pattern = { 'list', 'listchars' }, callback = H.cache_trunc_chars }
   trunc_opts.desc = 'Ensure truncation characters'
   vim.api.nvim_create_autocmd('OptionSet', trunc_opts)
+  
+  -- Update git status when buffers are created or loaded
+  vim.api.nvim_create_autocmd({'BufNew', 'BufReadPost'}, {
+    group = gr,
+    callback = function(args)
+      -- Use pcall to avoid errors if gitsigns isn't available
+      pcall(function()
+        local buf_id = args.buf
+        if vim.bo[buf_id].buflisted and vim.api.nvim_buf_is_valid(buf_id) then
+          require('gitsigns').attach(buf_id)
+        end
+      end)
+    end,
+    desc = 'Update git status for new buffers'
+  })
 end
 
 --stylua: ignore
@@ -313,6 +331,24 @@ H.list_tabs = function()
   end
 
   H.tabs = tabs
+end
+
+-- Update git status for all buffers
+H.update_all_buffers_git_status = function()
+  -- Check if gitsigns is available
+  local has_gitsigns, gitsigns = pcall(require, 'gitsigns')
+  if not has_gitsigns then return end
+  
+  -- Update git status for all listed buffers
+  for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.bo[buf_id].buflisted then
+      -- Force gitsigns to attach to the buffer if it's not already attached
+      if not vim.b[buf_id].gitsigns_head and vim.api.nvim_buf_is_valid(buf_id) then
+        -- Use pcall to avoid errors if buffer can't be attached
+        pcall(gitsigns.attach, buf_id)
+      end
+    end
+  end
 end
 
 -- Check if buffer has git changes
