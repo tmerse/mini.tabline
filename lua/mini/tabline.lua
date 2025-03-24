@@ -226,7 +226,14 @@ MiniTabline.default_format = function(buf_id, label)
   if config.git_icon and config.git_icon ~= "" and H.has_git_changes(buf_id) then
     -- Apply highlight if specified
     if config.git_icon_hl and config.git_icon_hl ~= "" then
-      git_suffix = "%#" .. config.git_icon_hl .. "#" .. config.git_icon .. "%*"
+      -- Get the current highlight group to restore it after the icon
+      local hl_group = buf_id == vim.api.nvim_get_current_buf() and "MiniTablineCurrent"
+        or (vim.fn.bufwinnr(buf_id) > 0 and "MiniTablineVisible" or "MiniTablineHidden")
+      if vim.bo[buf_id].modified then
+        hl_group = "MiniTablineModified" .. hl_group:gsub("MiniTabline", "")
+      end
+      
+      git_suffix = "%#" .. config.git_icon_hl .. "#" .. config.git_icon .. "%#" .. hl_group .. "#"
     else
       git_suffix = config.git_icon
     end
