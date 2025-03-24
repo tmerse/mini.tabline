@@ -181,7 +181,6 @@ end
 ---
 ---@usage `require('mini.tabline').refresh_git_status()`
 MiniTabline.refresh_git_status = function()
-  print("hello world")
   H.update_all_buffers_git_status()
   -- Force tabline redraw
   vim.cmd("redrawtabline")
@@ -223,6 +222,9 @@ H.tabs = {}
 
 -- Keep track of initially unnamed buffers
 H.unnamed_buffers_seq_ids = {}
+
+-- Cache for git status of files
+H.git_status_cache = {}
 
 -- Separator of file path
 H.path_sep = package.config:sub(1, 1)
@@ -360,32 +362,57 @@ H.update_all_buffers_git_status = function()
     return
   end
 
-  -- Check if we're in a git repo by trying to get the root directory
+  -- Check if we're in a git repo
   local in_git_repo = false
+  local git_root = nil
+  
   pcall(function()
     -- This will throw an error if not in a git repo
-    local _ = vim.fn.systemlist("git rev-parse --is-inside-work-tree")[1]
-    in_git_repo = true
+    local result = vim.fn.systemlist("git rev-parse --show-toplevel")
+    if result and #result > 0 then
+      git_root = result[1]
+      in_git_repo = true
+    end
   end)
 
-  if not in_git_repo then
+  if not in_git_repo or not git_root then
     return
   end
-
-  -- Update git status for all listed buffers
+  
+  -- Clear the cache
+  H.git_status_cache = {}
+  
+  -- First approach: Try to use gitsigns for all buffers
   for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
     if vim.bo[buf_id].buflisted and vim.api.nvim_buf_is_valid(buf_id) then
-      -- Force gitsigns to attach to the buffer if it's not already attached
-      pcall(function()
-        -- Only attach if the buffer has a name (file path)
-        local bufname = vim.api.nvim_buf_get_name(buf_id)
-        if bufname and bufname ~= "" then
+      local bufname = vim.api.nvim_buf_get_name(buf_id)
+      if bufname and bufname ~= "" then
+        -- Try to attach gitsigns
+        pcall(function()
           gitsigns.attach(buf_id)
-        end
-      end)
+        end)
+      end
     end
   end
-
+  
+  -- Second approach: Get a list of all modified files from git
+  -- and use it as a fallback for buffers that gitsigns hasn't processed
+  pcall(function()
+    -- Get list of modified files
+    local git_status_output = vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " status --porcelain")
+    
+    -- Process each line of git status output
+    for _, line in ipairs(git_status_output) do
+      if line:match("^[ MADRCU?!][ MADRCU?!] ") then
+        -- Extract the filename (starts at position 4)
+        local filename = line:sub(4)
+        -- Store in our cache with full path
+        local full_path = git_root .. "/" .. filename
+        H.git_status_cache[full_path] = true
+      end
+    end
+  end)
+  
   -- Schedule a redraw to ensure the tabline updates
   vim.schedule(function()
     vim.cmd("redrawtabline")
@@ -394,9 +421,19 @@ end
 
 -- Check if buffer has git changes
 H.has_git_changes = function(buf_id)
-  -- Check if gitsigns status is available for this buffer
+  -- First check if gitsigns status is available for this buffer
   local git_status = vim.b[buf_id].gitsigns_status
-  return git_status and git_status ~= ""
+  if git_status and git_status ~= "" then
+    return true
+  end
+  
+  -- Fall back to our cache if gitsigns hasn't processed this buffer yet
+  local bufname = vim.api.nvim_buf_get_name(buf_id)
+  if bufname and bufname ~= "" and H.git_status_cache[bufname] then
+    return true
+  end
+  
+  return false
 end
 
 -- Tab's highlight group
