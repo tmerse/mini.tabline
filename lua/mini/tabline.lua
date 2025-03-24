@@ -129,6 +129,14 @@ end
 ---     return MiniTabline.default_format(buf_id, label) .. suffix
 ---   end
 --- <
+---
+--- # Git integration ~
+---
+--- When `git_icon` is set (default: ' '), buffers with git changes will show
+--- this icon. This requires gitsigns.nvim to be installed and configured.
+--- The git status is obtained from `vim.b[buf_id].gitsigns_status`.
+--- If there is no git repository at the root of the current working directory,
+--- this functionality is ignored.
 MiniTabline.config = {
   -- Whether to show file icons (requires 'mini.icons')
   show_icons = true,
