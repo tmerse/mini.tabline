@@ -137,6 +137,10 @@ end
 --- The git status is obtained from `vim.b[buf_id].gitsigns_status`.
 --- If there is no git repository at the root of the current working directory,
 --- this functionality is ignored.
+---
+--- The `git_icon_hl` option (default: 'DiagnosticWarn') specifies the highlight
+--- group to use for the git status icon. Set to empty string to use the default
+--- text color of the buffer tab.
 MiniTabline.config = {
   -- Whether to show file icons (requires 'mini.icons')
   show_icons = true,
@@ -156,6 +160,10 @@ MiniTabline.config = {
   -- Icon to show for buffers with git changes (requires gitsigns.nvim)
   -- Set to empty string to disable
   git_icon = " ",
+  
+  -- Highlight group for git status icon
+  -- Set to empty string to use the default text color
+  git_icon_hl = "DiagnosticWarn",
 }
 --minidoc_afterlines_end
 
@@ -216,7 +224,12 @@ MiniTabline.default_format = function(buf_id, label)
 
   -- Add git status indicator if configured and changes exist
   if config.git_icon and config.git_icon ~= "" and H.has_git_changes(buf_id) then
-    git_suffix = config.git_icon
+    -- Apply highlight if specified
+    if config.git_icon_hl and config.git_icon_hl ~= "" then
+      git_suffix = "%#" .. config.git_icon_hl .. "#" .. config.git_icon .. "%*"
+    else
+      git_suffix = config.git_icon
+    end
   end
 
   if H.get_icon == nil then
