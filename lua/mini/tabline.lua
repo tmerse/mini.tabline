@@ -277,6 +277,7 @@ H.setup_config = function(config)
   H.check_type("set_vim_settings", config.set_vim_settings, "boolean")
   H.check_type("tabpage_section", config.tabpage_section, "string")
   H.check_type("git_icon", config.git_icon, "string", true)
+  H.check_type("git_icon_hl", config.git_icon_hl, "string", true)
 
   return config
 end
