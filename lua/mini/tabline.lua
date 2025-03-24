@@ -248,7 +248,7 @@ H.path_sep = package.config:sub(1, 1)
 H.tabpage_section = ''
 
 -- Data about truncation characters used when there are too much tabs
-H.trunc = { left = "", right = "", needs_left = false, needs_right = false }
+H.trunc = { left = '', right = '', needs_left = false, needs_right = false }
 
 -- Buffer number of center buffer
 H.center_buf_id = nil
