@@ -316,7 +316,15 @@ H.create_autocommands = function()
     callback = function(args)
       local buf_id = args.buf
       if vim.bo[buf_id].buflisted and vim.api.nvim_buf_is_valid(buf_id) then
+        -- Mark buffer as visited
         H.visited_buffers[buf_id] = true
+        
+        -- Give gitsigns time to initialize for this buffer
+        vim.defer_fn(function()
+          if vim.api.nvim_buf_is_valid(buf_id) then
+            vim.cmd("redrawtabline")
+          end
+        end, 100)
       end
     end,
     desc = "Track visited buffers",
@@ -461,10 +469,25 @@ end
 
 -- Check if buffer has git changes
 H.has_git_changes = function(buf_id)
-  -- For visited buffers, only trust gitsigns status
+  -- Get buffer name for cache lookup
+  local bufname = vim.api.nvim_buf_get_name(buf_id)
+  
+  -- For visited buffers, only trust gitsigns status if it's available
   if H.visited_buffers[buf_id] then
     local git_status = vim.b[buf_id].gitsigns_status
-    return git_status and git_status ~= ""
+    
+    -- If gitsigns has processed this buffer and has a status, use it
+    if git_status ~= nil then
+      return git_status ~= ""
+    end
+    
+    -- If gitsigns hasn't set a status yet but we're in a transition period
+    -- (buffer just became active), fall back to cache temporarily
+    if bufname and bufname ~= "" and H.git_status_cache[bufname] then
+      return true
+    end
+    
+    return false
   end
   
   -- For unvisited buffers, check gitsigns first
@@ -474,7 +497,6 @@ H.has_git_changes = function(buf_id)
   end
   
   -- Fall back to our cache if gitsigns hasn't processed this buffer yet
-  local bufname = vim.api.nvim_buf_get_name(buf_id)
   if bufname and bufname ~= "" and H.git_status_cache[bufname] then
     return true
   end
