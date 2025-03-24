@@ -155,7 +155,7 @@ MiniTabline.config = {
 
   -- Icon to show for buffers with git changes (requires gitsigns.nvim)
   -- Set to empty string to disable
-  git_icon = " ",
+  git_icon = ' ',
 }
 --minidoc_afterlines_end
 
@@ -163,7 +163,7 @@ MiniTabline.config = {
 --- Make string for |tabline|
 MiniTabline.make_tabline_string = function()
   if H.is_disabled() then
-    return ""
+    return ''
   end
 
   H.make_tabpage_section()
@@ -183,7 +183,7 @@ end
 MiniTabline.refresh_git_status = function()
   H.update_all_buffers_git_status()
   -- Force tabline redraw
-  vim.cmd("redrawtabline")
+  vim.cmd('redrawtabline')
 end
 
 --- Reset the visited buffers tracking
@@ -212,17 +212,17 @@ end
 ---@return string Formatted label.
 MiniTabline.default_format = function(buf_id, label)
   local config = H.get_config()
-  local git_suffix = ""
+  local git_suffix = ''
 
   -- Add git status indicator if configured and changes exist
-  if config.git_icon and config.git_icon ~= "" and H.has_git_changes(buf_id) then
+  if config.git_icon and config.git_icon ~= '' and H.has_git_changes(buf_id) then
     git_suffix = config.git_icon
   end
 
   if H.get_icon == nil then
-    return string.format(" %s%s ", label, git_suffix)
+    return string.format(' %s%s ', label, git_suffix)
   end
-  return string.format(" %s %s%s ", H.get_icon(vim.api.nvim_buf_get_name(buf_id)), label, git_suffix)
+  return string.format(' %s %s%s ', H.get_icon(vim.api.nvim_buf_get_name(buf_id)), label, git_suffix)
 end
 
 -- Helper data ================================================================
@@ -245,7 +245,7 @@ H.visited_buffers = {}
 H.path_sep = package.config:sub(1, 1)
 
 -- String with tabpage prefix
-H.tabpage_section = ""
+H.tabpage_section = ''
 
 -- Data about truncation characters used when there are too much tabs
 H.trunc = { left = "", right = "", needs_left = false, needs_right = false }
@@ -281,7 +281,7 @@ H.apply_config = function(config)
   H.cache_trunc_chars()
 
   -- Set tabline string
-  vim.o.tabline = "%!v:lua.MiniTabline.make_tabline_string()"
+  vim.o.tabline = '%!v:lua.MiniTabline.make_tabline_string()'
 
   -- Update git status for all buffers on initial load
   H.update_all_buffers_git_status()
@@ -322,7 +322,7 @@ H.create_autocommands = function()
         -- Give gitsigns time to initialize for this buffer
         vim.defer_fn(function()
           if vim.api.nvim_buf_is_valid(buf_id) then
-            vim.cmd("redrawtabline")
+            vim.cmd('redrawtabline')
           end
         end, 100)
       end
@@ -337,7 +337,7 @@ H.create_autocommands = function()
       -- Schedule a refresh of the tabline after a short delay
       -- to allow gitsigns to update
       vim.defer_fn(function()
-        vim.cmd("redrawtabline")
+        vim.cmd('redrawtabline')
       end, 100)
     end,
     desc = "Update tabline after buffer save",
@@ -374,14 +374,14 @@ end
 
 -- Work with tabpages ---------------------------------------------------------
 H.make_tabpage_section = function()
-  local n_tabpages = vim.fn.tabpagenr("$")
-  if n_tabpages == 1 or H.get_config().tabpage_section == "none" then
-    H.tabpage_section = ""
+  local n_tabpages = vim.fn.tabpagenr('$')
+  if n_tabpages == 1 or H.get_config().tabpage_section == 'none' then
+    H.tabpage_section = ''
     return
   end
 
   local cur_tabpagenr = vim.fn.tabpagenr()
-  H.tabpage_section = string.format(" Tab %s/%s ", cur_tabpagenr, n_tabpages)
+  H.tabpage_section = string.format(' Tab %s/%s ', cur_tabpagenr, n_tabpages)
 end
 
 -- Work with tabs -------------------------------------------------------------
@@ -416,7 +416,7 @@ H.update_all_buffers_git_status = function()
   
   pcall(function()
     -- This will throw an error if not in a git repo
-    local result = vim.fn.systemlist("git rev-parse --show-toplevel")
+    local result = vim.fn.systemlist('git rev-parse --show-toplevel')
     if result and #result > 0 then
       git_root = result[1]
       in_git_repo = true
@@ -447,15 +447,15 @@ H.update_all_buffers_git_status = function()
   -- and use it as a fallback for buffers that gitsigns hasn't processed
   pcall(function()
     -- Get list of modified files
-    local git_status_output = vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " status --porcelain")
+    local git_status_output = vim.fn.systemlist('git -C ' .. vim.fn.shellescape(git_root) .. ' status --porcelain')
     
     -- Process each line of git status output
     for _, line in ipairs(git_status_output) do
-      if line:match("^[ MADRCU?!][ MADRCU?!] ") then
+      if line:match('^[ MADRCU?!][ MADRCU?!] ') then
         -- Extract the filename (starts at position 4)
         local filename = line:sub(4)
         -- Store in our cache with full path
-        local full_path = git_root .. "/" .. filename
+        local full_path = git_root .. '/' .. filename
         H.git_status_cache[full_path] = true
       end
     end
@@ -463,7 +463,7 @@ H.update_all_buffers_git_status = function()
   
   -- Schedule a redraw to ensure the tabline updates
   vim.schedule(function()
-    vim.cmd("redrawtabline")
+    vim.cmd('redrawtabline')
   end)
 end
 
@@ -478,12 +478,12 @@ H.has_git_changes = function(buf_id)
     
     -- If gitsigns has processed this buffer and has a status, use it
     if git_status ~= nil then
-      return git_status ~= ""
+      return git_status ~= ''
     end
     
     -- If gitsigns hasn't set a status yet but we're in a transition period
     -- (buffer just became active), fall back to cache temporarily
-    if bufname and bufname ~= "" and H.git_status_cache[bufname] then
+    if bufname and bufname ~= '' and H.git_status_cache[bufname] then
       return true
     end
     
@@ -492,12 +492,12 @@ H.has_git_changes = function(buf_id)
   
   -- For unvisited buffers, check gitsigns first
   local git_status = vim.b[buf_id].gitsigns_status
-  if git_status and git_status ~= "" then
+  if git_status and git_status ~= '' then
     return true
   end
   
   -- Fall back to our cache if gitsigns hasn't processed this buffer yet
-  if bufname and bufname ~= "" and H.git_status_cache[bufname] then
+  if bufname and bufname ~= '' and H.git_status_cache[bufname] then
     return true
   end
   
@@ -520,7 +520,7 @@ H.construct_label_data = function(buf_id)
   local label, label_extender
 
   local bufpath = vim.api.nvim_buf_get_name(buf_id)
-  if bufpath ~= "" then
+  if bufpath ~= '' then
     -- Process path buffer
     label = vim.fn.fnamemodify(bufpath, ":t")
     label_extender = H.make_path_extender(buf_id)
@@ -540,7 +540,7 @@ H.make_path_extender = function(buf_id)
   return function(label)
     local full_path = vim.api.nvim_buf_get_name(buf_id)
     -- Using `vim.pesc` prevents effect of problematic characters (like '.')
-    local pattern = string.format("[^%s]+%s%s$", H.path_sep, H.path_sep, vim.pesc(label))
+    local pattern = string.format('[^%s]+%s%s$', H.path_sep, H.path_sep, vim.pesc(label))
     return string.match(full_path, pattern) or label
   end
 end
@@ -555,15 +555,15 @@ end
 H.make_unnamed_label = function(buf_id)
   local buftype = vim.bo[buf_id].buftype
   -- Differentiate quickfix/location lists and scratch/other unnamed buffers
-  local label = buftype == "quickfix"
+  local label = buftype == 'quickfix'
       -- There can be only one quickfix buffer and many location buffers
-      and (vim.fn.getqflist({ qfbufnr = true }).qfbufnr == buf_id and "*quickfix*" or "*location*")
-    or ((buftype == "nofile" or buftype == "acwrite") and "!" or "*")
+      and (vim.fn.getqflist({ qfbufnr = true }).qfbufnr == buf_id and '*quickfix*' or '*location*')
+    or ((buftype == 'nofile' or buftype == 'acwrite') and '!' or '*')
 
   -- Possibly add tracking id
   local unnamed_id = H.get_unnamed_id(buf_id)
   if unnamed_id > 1 then
-    label = string.format("%s(%d)", label, unnamed_id)
+    label = string.format('%s(%d)', label, unnamed_id)
   end
 
   return label
@@ -730,11 +730,11 @@ H.truncate_tabs_display = function(display_interval)
 end
 
 H.cache_trunc_chars = function()
-  local trunc_chars = { left = "", right = "" }
+  local trunc_chars = { left = '', right = '' }
   if vim.go.list then
     local listchars = vim.go.listchars
-    trunc_chars.left = listchars:match("precedes:(.[^,]*)") or ""
-    trunc_chars.right = listchars:match("extends:(.[^,]*)") or ""
+    trunc_chars.left = listchars:match('precedes:(.[^,]*)') or ''
+    trunc_chars.right = listchars:match('extends:(.[^,]*)') or ''
   end
   H.trunc = trunc_chars
 end
@@ -744,27 +744,27 @@ H.concat_tabs = function()
   -- NOTE: it is assumed that all padding is incorporated into labels
   local t = {}
   if H.trunc.needs_left then
-    table.insert(t, "%#MiniTablineTrunc#" .. H.trunc.left:gsub("%%", "%%%%"))
+    table.insert(t, '%#MiniTablineTrunc#' .. H.trunc.left:gsub('%%', '%%%%'))
   end
   for _, tab in ipairs(H.tabs) do
     -- Escape '%' in labels
-    table.insert(t, tab.hl .. tab.tabfunc .. tab.label:gsub("%%", "%%%%"))
+    table.insert(t, tab.hl .. tab.tabfunc .. tab.label:gsub('%%', '%%%%'))
   end
   if H.trunc.needs_right then
-    table.insert(t, "%#MiniTablineTrunc#" .. H.trunc.right:gsub("%%", "%%%%"))
+    table.insert(t, '%#MiniTablineTrunc#' .. H.trunc.right:gsub('%%', '%%%%'))
   end
 
   -- Usage of `%X` makes filled space to the right "non-clickable"
-  local res = table.concat(t, "") .. "%X%#MiniTablineFill#"
+  local res = table.concat(t, '') .. '%X%#MiniTablineFill#'
 
   -- Add tabpage section
-  if H.tabpage_section ~= "" then
+  if H.tabpage_section ~= '' then
     local position = H.get_config().tabpage_section
-    if position == "left" then
-      res = "%#MiniTablineTabpagesection#" .. H.tabpage_section .. res
+    if position == 'left' then
+      res = '%#MiniTablineTabpagesection#' .. H.tabpage_section .. res
     end
-    if position == "right" then
-      res = res .. "%=%#MiniTablineTabpagesection#" .. H.tabpage_section
+    if position == 'right' then
+      res = res .. '%=%#MiniTablineTabpagesection#' .. H.tabpage_section
     end
   end
 
@@ -773,14 +773,14 @@ end
 
 -- Utilities ------------------------------------------------------------------
 H.error = function(msg)
-  error("(mini.tabline) " .. msg, 0)
+  error('(mini.tabline) ' .. msg, 0)
 end
 
 H.check_type = function(name, val, ref, allow_nil)
-  if type(val) == ref or (ref == "callable" and vim.is_callable(val)) or (allow_nil and val == nil) then
+  if type(val) == ref or (ref == 'callable' and vim.is_callable(val)) or (allow_nil and val == nil) then
     return
   end
-  H.error(string.format("`%s` should be %s, not %s", name, ref, type(val)))
+  H.error(string.format('`%s` should be %s, not %s', name, ref, type(val)))
 end
 
 H.strwidth = function(x)
@@ -807,7 +807,7 @@ H.ensure_get_icon = function(config)
     end
     -- Use basename because it makes exact file name matching work
     H.get_icon = function(name)
-      return (devicons.get_icon(vim.fn.fnamemodify(name, ":t"), nil, { default = true }))
+      return (devicons.get_icon(vim.fn.fnamemodify(name, ':t'), nil, { default = true }))
     end
   end
 end
