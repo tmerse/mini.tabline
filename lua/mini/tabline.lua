@@ -137,10 +137,6 @@ end
 --- The git status is obtained from `vim.b[buf_id].gitsigns_status`.
 --- If there is no git repository at the root of the current working directory,
 --- this functionality is ignored.
----
---- The `git_icon_hl` option (default: 'DiagnosticWarn') specifies the highlight
---- group to use for the git status icon. Set to empty string to use the default
---- text color of the buffer tab.
 MiniTabline.config = {
   -- Whether to show file icons (requires 'mini.icons')
   show_icons = true,
@@ -160,10 +156,6 @@ MiniTabline.config = {
   -- Icon to show for buffers with git changes (requires gitsigns.nvim)
   -- Set to empty string to disable
   git_icon = " ",
-  
-  -- Highlight group for git status icon
-  -- Set to empty string to use the default text color
-  git_icon_hl = "DiagnosticWarn",
 }
 --minidoc_afterlines_end
 
@@ -224,19 +216,7 @@ MiniTabline.default_format = function(buf_id, label)
 
   -- Add git status indicator if configured and changes exist
   if config.git_icon and config.git_icon ~= "" and H.has_git_changes(buf_id) then
-    -- Apply highlight if specified
-    if config.git_icon_hl and config.git_icon_hl ~= "" then
-      -- Get the current highlight group to restore it after the icon
-      local hl_group = buf_id == vim.api.nvim_get_current_buf() and "MiniTablineCurrent"
-        or (vim.fn.bufwinnr(buf_id) > 0 and "MiniTablineVisible" or "MiniTablineHidden")
-      if vim.bo[buf_id].modified then
-        hl_group = "MiniTablineModified" .. hl_group:gsub("MiniTabline", "")
-      end
-      
-      git_suffix = "%#" .. config.git_icon_hl .. "#" .. config.git_icon .. "%#" .. hl_group .. "#"
-    else
-      git_suffix = config.git_icon
-    end
+    git_suffix = config.git_icon
   end
 
   if H.get_icon == nil then
@@ -284,7 +264,6 @@ H.setup_config = function(config)
   H.check_type("set_vim_settings", config.set_vim_settings, "boolean")
   H.check_type("tabpage_section", config.tabpage_section, "string")
   H.check_type("git_icon", config.git_icon, "string", true)
-  H.check_type("git_icon_hl", config.git_icon_hl, "string", true)
 
   return config
 end
