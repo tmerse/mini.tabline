@@ -172,6 +172,18 @@ MiniTabline.make_tabline_string = function()
   return H.concat_tabs()
 end
 
+--- Refresh git status for all buffers
+---
+--- This function can be called manually to refresh git status for all buffers.
+--- Useful when git changes aren't immediately reflected in the tabline.
+---
+---@usage `require('mini.tabline').refresh_git_status()`
+MiniTabline.refresh_git_status = function()
+  H.update_all_buffers_git_status()
+  -- Force tabline redraw
+  vim.cmd('redrawtabline')
+end
+
 --- Default tab format
 ---
 --- Used by default as `config.format`.
@@ -339,16 +351,34 @@ H.update_all_buffers_git_status = function()
   local has_gitsigns, gitsigns = pcall(require, 'gitsigns')
   if not has_gitsigns then return end
   
+  -- Check if we're in a git repo by trying to get the root directory
+  local in_git_repo = false
+  pcall(function()
+    -- This will throw an error if not in a git repo
+    local _ = vim.fn.systemlist('git rev-parse --is-inside-work-tree')[1]
+    in_git_repo = true
+  end)
+  
+  if not in_git_repo then return end
+  
   -- Update git status for all listed buffers
   for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
-    if vim.bo[buf_id].buflisted then
+    if vim.bo[buf_id].buflisted and vim.api.nvim_buf_is_valid(buf_id) then
       -- Force gitsigns to attach to the buffer if it's not already attached
-      if not vim.b[buf_id].gitsigns_head and vim.api.nvim_buf_is_valid(buf_id) then
-        -- Use pcall to avoid errors if buffer can't be attached
-        pcall(gitsigns.attach, buf_id)
-      end
+      pcall(function()
+        -- Only attach if the buffer has a name (file path)
+        local bufname = vim.api.nvim_buf_get_name(buf_id)
+        if bufname and bufname ~= '' then
+          gitsigns.attach(buf_id)
+        end
+      end)
     end
   end
+  
+  -- Schedule a redraw to ensure the tabline updates
+  vim.schedule(function()
+    vim.cmd('redrawtabline')
+  end)
 end
 
 -- Check if buffer has git changes
